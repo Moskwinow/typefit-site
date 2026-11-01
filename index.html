@@ -2,23 +2,569 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Stylique</title>
-<link rel="stylesheet" href="style.css">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Stylique finds your style type (one of 13, based on the Kibbe system) and your color season (one of 12) from your height, a few measurements, 14 questions and two or three photos. Then it checks any item before you buy.">
+<meta property="og:title" content="Stylique: your style type and color season">
+<meta property="og:description" content="Know what suits you before you buy. Style type, color season and item checks in one app.">
+<meta property="og:image" content="img/og.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="img/icon-64.png">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: full-width bands that alternate the app's two store grounds (lavender, peach),
+   phones sit on the bands; one bold moment = the hero headline underlined by a real season palette. */
+:root {
+  --ink: #16141A;
+  --ground: #FFFFFF;
+  --surface: #F3F1F6;
+  --muted: #5E5A66;
+  --divider: #E2DFE7;
+  --accent: #5B3DF5;
+  --accent-tint: #ECE8FF;
+  --lavender: #EFEBFF;
+  --peach: #F6EFE6;
+  --night: #16141A;
+  --on-night: #F3F1F6;
+  --on-night-muted: #B4B0BA;
+  --success: #1F7A4D; --success-bg: #E3F4EA;
+  --warning: #7A4B00; --warning-bg: #FFF1D6;
+  --danger: #B3402C; --danger-bg: #FCE9E6;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --max: 1120px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #F3F1F6; --ground: #16141A; --surface: #221F28; --muted: #B4B0BA; --divider: #34303B;
+    --accent: #B9AAFF; --accent-tint: #2C2547; --lavender: #1D1A2B; --peach: #241F1B;
+    --night: #0E0D11; --on-night: #F3F1F6; --on-night-muted: #B4B0BA;
+    --success: #7FD3A6; --success-bg: #17301F; --warning: #FFD58A; --warning-bg: #3A2C10;
+    --danger: #FF9F8C; --danger-bg: #3A1D17;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #F3F1F6; --ground: #16141A; --surface: #221F28; --muted: #B4B0BA; --divider: #34303B;
+  --accent: #B9AAFF; --accent-tint: #2C2547; --lavender: #1D1A2B; --peach: #241F1B;
+  --night: #0E0D11; --on-night: #F3F1F6; --on-night-muted: #B4B0BA;
+  --success: #7FD3A6; --success-bg: #17301F; --warning: #FFD58A; --warning-bg: #3A2C10;
+  --danger: #FF9F8C; --danger-bg: #3A1D17;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.05; letter-spacing: -0.035em; }
+h3 { font-size: 22px; line-height: 1.2; letter-spacing: -0.02em; }
+p { margin: 0; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.lede { font-size: 18px; color: var(--muted); max-width: 34em; }
+.band { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: var(--max); margin: 0 auto; }
+
+/* Header */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--lavender); }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: color-mix(in srgb, var(--lavender) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 21px; letter-spacing: -0.02em; }
+.brand img { width: 32px; height: 32px; border-radius: 9px; }
+.top nav { display: flex; gap: 22px; font-size: 14px; font-weight: 500; }
+.top nav a { color: var(--ink); text-decoration: none; }
+.top nav a:hover { color: var(--accent); }
+@media (max-width: 720px) { .top nav a:not(.keep) { display: none; } }
+
+/* Store buttons */
+.stores { display: flex; flex-wrap: wrap; gap: 10px; }
+.store { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 18px 8px 14px; border-radius: 16px; background: var(--ink); color: var(--ground); text-decoration: none; }
+.store svg { width: 24px; height: 24px; flex: none; }
+.store span { display: grid; line-height: 1.15; }
+.store small { font-size: 11px; opacity: .75; }
+.store b { font-size: 16px; font-weight: 600; }
+.store.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.status { font-size: 13px; color: var(--muted); }
+
+/* Hero */
+.hero { background: var(--lavender); overflow: hidden; }
+.hero .wrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 40px; align-items: end; padding-top: 48px; }
+.hero-copy { display: grid; gap: 22px; padding-bottom: 72px; align-self: center; }
+.hero h1 { font-size: clamp(44px, 7.2vw, 88px); line-height: .95; letter-spacing: -0.045em; font-weight: 800; }
+.suits { position: relative; display: inline-block; white-space: nowrap; }
+.swatch-line { position: absolute; left: 0; right: 0; bottom: -0.06em; height: .14em; display: flex; border-radius: 99px; overflow: hidden; }
+.swatch-line i { flex: 1; transform-origin: left; animation: grow .7s cubic-bezier(.2,.8,.2,1) both; }
+.swatch-line i:nth-child(2) { animation-delay: .06s } .swatch-line i:nth-child(3) { animation-delay: .12s } .swatch-line i:nth-child(4) { animation-delay: .18s }
+.swatch-line i:nth-child(5) { animation-delay: .24s } .swatch-line i:nth-child(6) { animation-delay: .30s } .swatch-line i:nth-child(7) { animation-delay: .36s } .swatch-line i:nth-child(8) { animation-delay: .42s }
+@keyframes grow { from { transform: scaleX(.2); } to { transform: scaleX(1); } }
+.hero-stage { position: relative; justify-self: center; width: min(360px, 100%); }
+.phone { filter: drop-shadow(0 30px 50px rgba(40, 24, 120, .18)); }
+.chip { position: absolute; display: grid; gap: 2px; padding: 10px 14px; border-radius: 16px; background: var(--ground); color: var(--ink); box-shadow: 0 12px 30px rgba(22, 20, 26, .12); font-size: 13px; line-height: 1.3; }
+.chip b { font-family: var(--display); font-size: 17px; letter-spacing: -0.02em; }
+.chip small { color: var(--muted); font-size: 12px; }
+.chip.a { left: -72px; top: 58%; }
+.chip.b { right: -48px; top: 30%; }
+.chip .dots { display: flex; gap: 4px; margin-top: 4px; }
+.chip .dots i { width: 16px; height: 16px; border-radius: 5px; }
+@media (max-width: 860px) {
+  .hero .wrap { grid-template-columns: minmax(0, 1fr); padding-top: 32px; gap: 28px; }
+  .hero-copy { padding-bottom: 0; }
+  .hero-stage { width: min(280px, 72%); }
+  .hero .phone { aspect-ratio: 640 / 1000; object-fit: cover; object-position: top; }
+  .chip { display: none; }
+}
+
+/* Facts strip */
+.facts { background: var(--ground); }
+.facts .wrap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; padding-block: 36px; border-bottom: 1px solid var(--divider); }
+.fact b { display: block; font-family: var(--display); font-size: 40px; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.fact span { font-size: 14px; color: var(--muted); }
+@media (max-width: 720px) { .facts .wrap { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* How it works */
+.how .wrap { padding-block: 88px 72px; display: grid; gap: 40px; }
+.head { display: grid; gap: 14px; max-width: 640px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; gap: 8px; align-content: start; padding: 22px; border-radius: 22px; background: var(--surface); }
+.steps li::before { content: counter(s); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent-tint); color: var(--accent); font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+.steps li:last-child { background: var(--ink); color: var(--ground); }
+.steps li:last-child::before { background: var(--accent); color: #fff; }
+.steps h3 { font-size: 19px; }
+.steps p { font-size: 15px; color: var(--muted); }
+.steps li:last-child p { color: color-mix(in srgb, var(--ground) 72%, transparent); }
+@media (max-width: 900px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .steps { grid-template-columns: minmax(0, 1fr); } }
+
+/* Feature rows */
+.feature { overflow: hidden; }
+.feature.lav { background: var(--lavender); }
+.feature.peach { background: var(--peach); }
+.feature .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; align-items: center; padding-top: 72px; }
+.feature.flip .copy { order: 2; }
+.feature .copy { display: grid; gap: 18px; padding-bottom: 72px; }
+.feature .copy p { color: var(--muted); font-size: 17px; max-width: 30em; }
+.feature .shot { justify-self: center; width: min(320px, 100%); aspect-ratio: 640 / 1040; object-fit: cover; object-position: top; align-self: end; }
+.ticks { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 10px; font-size: 15px; }
+.ticks li { display: flex; gap: 10px; align-items: flex-start; }
+.ticks svg { flex: none; width: 20px; height: 20px; margin-top: 2px; color: var(--accent); }
+.verdicts { display: flex; flex-wrap: wrap; gap: 8px; }
+.verdict { padding: 6px 12px; border-radius: 99px; font-size: 13px; font-weight: 600; }
+.verdict.ok { color: var(--success); background: var(--success-bg); }
+.verdict.mid { color: var(--warning); background: var(--warning-bg); }
+.verdict.no { color: var(--danger); background: var(--danger-bg); }
+@media (max-width: 860px) {
+  .feature .wrap { grid-template-columns: minmax(0, 1fr); gap: 32px; padding-top: 56px; }
+  .feature.flip .copy { order: 0; }
+  .feature .copy { padding-bottom: 0; }
+  .feature .shot { width: min(270px, 78%); aspect-ratio: 640 / 900; }
+}
+
+/* Gallery strip */
+.gallery .wrap { padding-block: 80px 24px; display: grid; gap: 28px; }
+.reel { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 240px); gap: 18px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 0 20px; }
+.reel figure { margin: 0; scroll-snap-align: start; display: grid; gap: 10px; }
+.reel .frame { border-radius: 26px; padding: 18px 16px 0; overflow: hidden; }
+.reel .frame img { aspect-ratio: 640 / 1000; object-fit: cover; object-position: top; width: 100%; }
+.reel .frame.lav { background: var(--lavender); } .reel .frame.peach { background: var(--peach); } .reel .frame.night { background: var(--night); }
+.reel figcaption { font-size: 14px; font-weight: 500; }
+
+/* Types and seasons */
+.system .wrap { padding-block: 72px 88px; display: grid; gap: 40px; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+.panel { padding: 28px; border-radius: 26px; background: var(--surface); display: grid; gap: 18px; align-content: start; }
+.panel p { color: var(--muted); font-size: 15px; }
+.family { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; padding-top: 12px; border-top: 1px solid var(--divider); align-items: baseline; }
+.family dt { font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+.family dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { padding: 4px 10px; border-radius: 99px; background: var(--ground); font-size: 13px; }
+.tag.on { background: var(--accent); color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tag.on { color: #16141A; } }
+:root[data-theme="dark"] .tag.on { color: #16141A; }
+.axes { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--muted); }
+.axes span { padding: 4px 10px; border-radius: 99px; box-shadow: inset 0 0 0 1px var(--divider); }
+@media (max-width: 860px) { .two { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 420px) { .family { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+
+/* Plans */
+.plans { background: var(--lavender); }
+.plans .wrap { padding-block: 88px; display: grid; gap: 40px; }
+.tiers { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.tier { padding: 30px; border-radius: 28px; background: var(--ground); display: grid; gap: 18px; }
+.tier.pro { background: var(--night); color: var(--on-night); }
+.tier .price { font-family: var(--display); font-size: 40px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.tier .price small { font-family: var(--body); font-size: 15px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+.tier.pro .price small, .tier.pro .note { color: var(--on-night-muted); }
+.tier.pro .ticks svg { color: #B9AAFF; }
+.tier .note { font-size: 13px; color: var(--muted); }
+.tier.pro .eyebrow { color: #B9AAFF; }
+@media (max-width: 860px) { .tiers { grid-template-columns: minmax(0, 1fr); } }
+
+/* Privacy */
+.privacy { background: var(--night); color: var(--on-night); }
+.privacy .wrap { padding-block: 88px; display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 56px; }
+.privacy h2 { font-size: clamp(40px, 6vw, 72px); }
+.privacy .lede { color: var(--on-night-muted); margin-top: 18px; }
+.privacy ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.privacy li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; padding: 18px 0; border-top: 1px solid rgba(243, 241, 246, .14); font-size: 16px; }
+.privacy li svg { width: 22px; height: 22px; color: #B9AAFF; margin-top: 2px; }
+@media (max-width: 860px) { .privacy .wrap { grid-template-columns: minmax(0, 1fr); gap: 32px; } }
+
+/* FAQ */
+.faq .wrap { padding-block: 88px; display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 48px; align-items: start; }
+details { border-top: 1px solid var(--divider); }
+details:last-child { border-bottom: 1px solid var(--divider); }
+summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; padding: 20px 0; font-weight: 600; font-size: 17px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; font-family: var(--display); font-size: 24px; line-height: 1; color: var(--accent); transition: transform .2s; }
+details[open] summary::after { transform: rotate(45deg); }
+details p { padding: 0 0 20px; color: var(--muted); max-width: 40em; }
+@media (max-width: 860px) { .faq .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; } }
+
+/* Footer */
+.cta { background: var(--peach); }
+.cta .wrap { padding-block: 72px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: center; }
+.cta-left { display: flex; align-items: center; gap: 22px; }
+.cta-left img { width: 84px; height: 84px; border-radius: 22px; flex: none; }
+@media (max-width: 760px) { .cta .wrap { grid-template-columns: minmax(0, 1fr); } .cta-left { flex-direction: column; align-items: flex-start; } }
+footer .wrap { padding-block: 40px 56px; display: grid; gap: 20px; font-size: 14px; color: var(--muted); }
+.foot-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; }
+.foot-links { display: flex; flex-wrap: wrap; gap: 18px; }
+.support { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--ink); }
+.support code { font: 500 15px var(--body); user-select: all; }
+.copy-btn { font: 500 13px var(--body); padding: 6px 12px; border-radius: 99px; border: 0; background: var(--surface); color: var(--ink); cursor: pointer; }
+.fine { font-size: 13px; max-width: 70em; }
+</style>
 </head>
 <body>
-<main>
-  <header><a href="./">Stylique</a></header>
-  <h1>Your body type and colors, in one result</h1>
-  <p>Stylique finds your style type and your color season from a few measurements, 14 questions and three photos, then shows what to wear and checks items before you buy.</p>
-  <div class="card">
-    <p><strong>Support:</strong> <a href="mailto:support@typefit.app">support@typefit.app</a></p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="tick" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m7.5 12.3 3 3 6-6.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="apple" viewBox="0 0 24 24"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.1 2.5-1.8 3.1-.5 7.6 1.3 10.1.8 1.2 1.8 2.6 3.1 2.5 1.3-.1 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-1-2.4-4.2ZM14 5.3c.7-.8 1.1-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4Z"/></symbol>
+  <symbol id="play" viewBox="0 0 24 24"><path fill="currentColor" d="M4.3 2.4c-.2.2-.3.6-.3 1v17.2c0 .4.1.8.3 1l9.3-9.6-9.3-9.6Zm10.4 10.7 2.6 2.7-11.4 6.5 8.8-9.2Zm0-2.2L5.9 1.7l11.4 6.5-2.6 2.7Zm3.9 4.3-2.9-3.2 2.9-3.2 3.2 1.8c.9.5.9 2.3 0 2.8l-3.2 1.8Z"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<header class="top band">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="img/icon-64.png" alt="" width="32" height="32">Stylique</a>
+    <nav aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#plans">Plans</a>
+      <a class="keep" href="#support">Support</a>
+    </nav>
   </div>
-  <nav class="links">
-    <a href="privacy.html">Privacy policy</a>
-    <a href="terms.html">Terms of use</a>
-    <a href="delete-account.html">Delete your account</a>
-  </nav>
+</header>
+
+<main>
+  <section class="hero band">
+    <div class="wrap">
+      <div class="hero-copy">
+        <p class="eyebrow">Style type + color season</p>
+        <h1>Know what <span class="suits">suits<span class="swatch-line" aria-hidden="true"><i style="background:#7B7A4E"></i><i style="background:#C19A6B"></i><i style="background:#B5735A"></i><i style="background:#4F7A74"></i><i style="background:#D49A86"></i><i style="background:#9CA383"></i><i style="background:#A08C7D"></i><i style="background:#C9A94F"></i></span></span> you, before you buy.</h1>
+        <p class="lede">Stylique looks at your lines and your coloring together. Add your height and a few measurements, answer 14 quick questions, take two or three photos, and get your style type and your color season in one result.</p>
+        <div class="stores">
+          <span class="store" aria-label="App Store, coming soon"><svg aria-hidden="true"><use href="#apple"/></svg><span><small>Coming soon on the</small><b>App Store</b></span></span>
+          <span class="store ghost" aria-label="Google Play, coming soon"><svg aria-hidden="true"><use href="#play"/></svg><span><small>Coming soon on</small><b>Google Play</b></span></span>
+        </div>
+        <p class="status">Free to start. For adults 18+.</p>
+      </div>
+      <div class="hero-stage">
+        <img class="phone" src="img/result.webp" alt="Stylique result screen: style type Soft Classic at 48% with Soft Natural at 25%, and color season Warm Autumn" width="640" height="1318">
+        <div class="chip a" aria-hidden="true"><small>Style type</small><b>Soft Classic</b><small>48% match</small></div>
+        <div class="chip b" aria-hidden="true"><small>Color season</small><b>Warm Autumn</b><span class="dots"><i style="background:#B5562F"></i><i style="background:#DE7B34"></i><i style="background:#C9673F"></i><i style="background:#D3A33C"></i></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="facts band" aria-label="Stylique in numbers">
+    <div class="wrap">
+      <div class="fact"><b>13</b><span>style types, based on the Kibbe system</span></div>
+      <div class="fact"><b>12</b><span>color seasons with your key colors</span></div>
+      <div class="fact"><b>14</b><span>quick questions about your lines</span></div>
+      <div class="fact"><b>~30 s</b><span>to read your photos and match your type</span></div>
+    </div>
+  </section>
+
+  <section class="how band" id="how">
+    <div class="wrap">
+      <div class="head">
+        <p class="eyebrow">How it works</p>
+        <h2>About five minutes from start to your result</h2>
+      </div>
+      <ol class="steps">
+        <li><h3>Your measurements</h3><p>Height and a few measurements in cm or inches. We never ask about your weight.</p></li>
+        <li><h3>14 questions</h3><p>Your frame, your outline, your hair, eyes and skin, and which metal looks best on you.</p></li>
+        <li><h3>Two or three photos</h3><p>A face photo from the front and in profile, and a full-length photo if you like. Daylight, no filters.</p></li>
+        <li><h3>Your result</h3><p>Your style type with how close the match is, your color season, and a guide to what to wear.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <div id="features">
+    <section class="feature lav band">
+      <div class="wrap">
+        <div class="copy">
+          <p class="eyebrow">Your result</p>
+          <h2>A clear answer, with the numbers behind it</h2>
+          <p>You see your style type out of 13 and how close the match is, plus the next closest type. Many people sit between two types, so when the match is close Stylique lets you read both and pick the one that feels like you.</p>
+          <ul class="ticks">
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Style type out of 13, with a match score</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Color season out of 12, with your key colors</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>A result card to share in stories and posts</li>
+          </ul>
+        </div>
+        <img class="shot" src="img/compare.webp" alt="Comparison sheet: Soft Classic at 48% next to Soft Natural at 25%, with a short description and principle for each" width="640" height="1318" loading="lazy">
+      </div>
+    </section>
+
+    <section class="feature peach flip band">
+      <div class="wrap">
+        <div class="copy">
+          <p class="eyebrow">Item check</p>
+          <h2>Check any item before you buy</h2>
+          <p>Share a product from a shop app or browser, or take a photo of it. Stylique scores it for your lines and your colors, says why, and suggests how to wear it.</p>
+          <div class="verdicts" aria-label="Possible verdicts">
+            <span class="verdict ok">Works for you</span>
+            <span class="verdict mid">Works with a tweak</span>
+            <span class="verdict no">Not your best match</span>
+          </div>
+          <ul class="ticks">
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Separate scores for lines and color</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>3 checks free, up to 30 a day with Premium</li>
+          </ul>
+        </div>
+        <img class="shot" src="img/itemcheck.webp" alt="Item check for a terracotta jersey wrap midi dress: Works for you, lines 88 and color 93, with reasons and how to wear it" width="640" height="1318" loading="lazy">
+      </div>
+    </section>
+
+    <section class="feature lav band">
+      <div class="wrap">
+        <div class="copy">
+          <p class="eyebrow">Try-on portraits · Premium</p>
+          <h2>See your colors on you</h2>
+          <p>Stylique makes portraits from your own photo with AI, with the same light and framing. Only the color, makeup or hair changes, so you can compare shades side by side and see which ones suit you.</p>
+          <ul class="ticks">
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Palette colors, makeup and hairstyles</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Marked "suits you" or "better to skip"</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Labeled as AI illustrations</li>
+          </ul>
+        </div>
+        <img class="shot" src="img/tryon.webp" alt="Colors on you: four AI portraits of the same woman in rust, pumpkin, terracotta and mustard tops, each marked suits you" width="640" height="1318" loading="lazy">
+      </div>
+    </section>
+
+    <section class="feature peach flip band">
+      <div class="wrap">
+        <div class="copy">
+          <p class="eyebrow">Your style guide</p>
+          <h2>A guide written for you</h2>
+          <p>Your guide explains what works for your lines in plain words: cuts, fabrics, prints, details and necklines. Premium adds outfit formulas, jewelry and accessories, makeup and hair, and your full palette with up to 30 colors.</p>
+          <ul class="ticks">
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Clothing section free for everyone</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Best neutrals, metals and colors to skip</li>
+          </ul>
+        </div>
+        <img class="shot" src="img/guide.webp" alt="Style guide clothing tab: your principle, soft tailoring and gentle drape, and a personal text about your lines and coloring" width="640" height="1318" loading="lazy">
+      </div>
+    </section>
+  </div>
+
+  <section class="gallery band" aria-label="More screens">
+    <div class="wrap">
+      <div class="head">
+        <p class="eyebrow">Inside the app</p>
+        <h2>More of what you get</h2>
+      </div>
+      <div class="reel" tabindex="0" aria-label="App screens, scroll sideways">
+        <figure><div class="frame lav"><img src="img/palette.webp" alt="Full palette with neutrals, core colors, accents and colors to skip" width="640" height="1318" loading="lazy"></div><figcaption>Your 30-color palette</figcaption></figure>
+        <figure><div class="frame peach"><img src="img/makeup.webp" alt="Makeup try-on portraits in warm nude, terracotta, brick red and fuchsia" width="640" height="1318" loading="lazy"></div><figcaption>Makeup that suits you</figcaption></figure>
+        <figure><div class="frame peach"><img src="img/skip.webp" alt="Portraits marked suits you and better to skip" width="640" height="1318" loading="lazy"></div><figcaption>Know what to skip</figcaption></figure>
+        <figure><div class="frame night"><img src="img/analysis.webp" alt="Analysis screen: reading your lines and colors, usually under 30 seconds" width="640" height="1318" loading="lazy"></div><figcaption>Results in about 30 seconds</figcaption></figure>
+        <figure><div class="frame lav"><img src="img/shape.webp" alt="Measurements screen with height, bust, waist and hips, and a choice of outline" width="640" height="1318" loading="lazy"></div><figcaption>No weight. Ever.</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="system band" aria-labelledby="system-title">
+    <div class="wrap">
+      <div class="head">
+        <p class="eyebrow">The method</p>
+        <h2 id="system-title">Two systems, read together</h2>
+        <p class="lede">AI reads your photos on a set of scales. Your type and season are then matched by fixed rules, so the same inputs give the same result.</p>
+      </div>
+      <div class="two">
+        <div class="panel">
+          <h3>13 style types in five families</h3>
+          <p>Based on the Kibbe system. Your type describes your lines: height, frame, softness and features.</p>
+          <dl style="margin:0;display:grid;gap:12px">
+            <div class="family"><dt>Dramatic</dt><dd><span class="tag">Dramatic</span><span class="tag">Soft Dramatic</span></dd></div>
+            <div class="family"><dt>Natural</dt><dd><span class="tag">Flamboyant Natural</span><span class="tag">Natural</span><span class="tag">Soft Natural</span></dd></div>
+            <div class="family"><dt>Classic</dt><dd><span class="tag">Dramatic Classic</span><span class="tag">Classic</span><span class="tag on">Soft Classic</span></dd></div>
+            <div class="family"><dt>Gamine</dt><dd><span class="tag">Flamboyant Gamine</span><span class="tag">Gamine</span><span class="tag">Soft Gamine</span></dd></div>
+            <div class="family"><dt>Romantic</dt><dd><span class="tag">Theatrical Romantic</span><span class="tag">Romantic</span></dd></div>
+          </dl>
+        </div>
+        <div class="panel">
+          <h3>12 color seasons</h3>
+          <p>Your season comes from your face photo in daylight and your answers about hair, eyes and skin. It is set by three things:</p>
+          <div class="axes"><span>Warm or cool</span><span>Light or deep</span><span>Clear or soft</span></div>
+          <dl style="margin:0;display:grid;gap:12px">
+            <div class="family"><dt>Spring</dt><dd><span class="tag">Light Spring</span><span class="tag">Warm Spring</span><span class="tag">Bright Spring</span></dd></div>
+            <div class="family"><dt>Summer</dt><dd><span class="tag">Light Summer</span><span class="tag">Cool Summer</span><span class="tag">Soft Summer</span></dd></div>
+            <div class="family"><dt>Autumn</dt><dd><span class="tag">Soft Autumn</span><span class="tag on">Warm Autumn</span><span class="tag">Deep Autumn</span></dd></div>
+            <div class="family"><dt>Winter</dt><dd><span class="tag">Deep Winter</span><span class="tag">Cool Winter</span><span class="tag">Bright Winter</span></dd></div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="plans band" id="plans">
+    <div class="wrap">
+      <div class="head">
+        <p class="eyebrow">Plans</p>
+        <h2>Start free. Go deeper when you want to.</h2>
+      </div>
+      <div class="tiers">
+        <div class="tier">
+          <p class="eyebrow">Free</p>
+          <p class="price">$0</p>
+          <ul class="ticks">
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Your style type out of 13, with how close the match is</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Your color season out of 12, with your key colors</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>The clothing part of your guide: cuts, fabrics, prints, details and necklines</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>3 item checks</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>A result card to share</li>
+          </ul>
+        </div>
+        <div class="tier pro">
+          <p class="eyebrow">Premium</p>
+          <p class="price">$12.99 <small>a month</small></p>
+          <p class="note">or $79.99 a year</p>
+          <ul class="ticks">
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>The full style guide: outfit formulas, jewelry and accessories, makeup and hair</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Your full palette with up to 30 colors, best neutrals and metals</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Try-on portraits: your colors, makeup and hairstyles on your own photo</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Up to 30 item checks a day, with tips on how to wear each piece</li>
+            <li><svg aria-hidden="true"><use href="#tick"/></svg>Repeat your analysis any time</li>
+          </ul>
+          <p class="note">Between two close types? Add the second one to your guide with a one-off purchase of $0.99. US prices; prices in your country are shown in the store. Cancel any time in your store account settings.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="privacy band" aria-labelledby="privacy-title">
+    <div class="wrap">
+      <div>
+        <p class="eyebrow" style="color:#B9AAFF">Private by design</p>
+        <h2 id="privacy-title">No weight. Ever.</h2>
+        <p class="lede">Your photos are used for one thing: your result. Here is what that means in practice.</p>
+      </div>
+      <ul>
+        <li><svg aria-hidden="true"><use href="#lock"/></svg><span>Photos are processed only with your consent.</span></li>
+        <li><svg aria-hidden="true"><use href="#lock"/></svg><span>Analysis photos are deleted right after the analysis.</span></li>
+        <li><svg aria-hidden="true"><use href="#lock"/></svg><span>We never keep face templates or use photos to identify you.</span></li>
+        <li><svg aria-hidden="true"><use href="#lock"/></svg><span>We never ask about your weight.</span></li>
+        <li><svg aria-hidden="true"><use href="#lock"/></svg><span>Delete your photos, withdraw consent or delete your account in the app at any time.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="faq band" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="head">
+        <p class="eyebrow">Questions</p>
+        <h2 id="faq-title">Good to know</h2>
+      </div>
+      <div>
+        <details>
+          <summary>Is Stylique a Kibbe test?</summary>
+          <p>Stylique uses the 13 classic style types based on the Kibbe system and adds a 12-season color analysis on top. Stylique is not affiliated with David Kibbe.</p>
+        </details>
+        <details>
+          <summary>What if the result doesn't feel like me?</summary>
+          <p>You always see how close the match is and your next closest type. If two types are close, you can compare them side by side and pick the one that fits. Premium lets you repeat your analysis any time, for example with photos in better daylight.</p>
+        </details>
+        <details>
+          <summary>What photos do I need?</summary>
+          <p>A face photo from the front and one in profile, taken by a window in daylight, without makeup or filters, with your hair pulled back. A full-length photo is optional and helps read your vertical line.</p>
+        </details>
+        <details>
+          <summary>What happens to my photos?</summary>
+          <p>Photos are processed only after you agree on a separate consent screen. Analysis photos are deleted right after the analysis. If you use try-on portraits, the front photo from your latest analysis is kept for them until you delete it. Full details are in the <a href="privacy.html">privacy policy</a>.</p>
+        </details>
+        <details>
+          <summary>Is this body or medical advice?</summary>
+          <p>No. Results are style recommendations made with the help of AI. Try-on portraits are AI illustrations. Treat your result as a starting point to explore, not a rule.</p>
+        </details>
+        <details>
+          <summary>Who is Stylique for?</summary>
+          <p>Adults 18 and over. The app asks for your date of birth when you start.</p>
+        </details>
+        <details>
+          <summary>How do I cancel Premium?</summary>
+          <p>Premium renews automatically each month or year. Cancel at least 24 hours before the end of the period in your App Store or Google Play account settings.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta band">
+    <div class="wrap">
+      <div class="cta-left">
+        <img src="img/icon-180.png" alt="Stylique app icon" width="84" height="84" loading="lazy">
+        <div style="display:grid;gap:8px">
+          <h2 style="font-size:clamp(28px,3.6vw,40px)">Find your type and your colors</h2>
+          <p class="status" style="font-size:15px">Stylique is coming soon to iPhone, with Android to follow.</p>
+        </div>
+      </div>
+      <div class="stores">
+        <span class="store" aria-label="App Store, coming soon"><svg aria-hidden="true"><use href="#apple"/></svg><span><small>Coming soon on the</small><b>App Store</b></span></span>
+        <span class="store ghost" aria-label="Google Play, coming soon"><svg aria-hidden="true"><use href="#play"/></svg><span><small>Coming soon on</small><b>Google Play</b></span></span>
+      </div>
+    </div>
+  </section>
 </main>
+
+<footer class="band" id="support">
+  <div class="wrap">
+    <div class="foot-row">
+      <div class="support"><strong>Support:</strong> <a href="mailto:support@typefit.app"><code>support@typefit.app</code></a> <button class="copy-btn" type="button" id="copy-email">Copy</button></div>
+      <nav class="foot-links" aria-label="Legal">
+        <a href="privacy.html">Privacy policy</a>
+        <a href="terms.html">Terms of use</a>
+        <a href="delete-account.html">Delete your account</a>
+      </nav>
+    </div>
+    <p class="fine">Results are style recommendations made with the help of AI, not medical or body advice. Try-on portraits are AI illustrations. Stylique is for adults 18+. Stylique is not affiliated with David Kibbe. The person in the screenshots is a fictional model generated with AI.</p>
+    <p class="fine">© 2026 Maksym Vechirko, trading as M.V. Rentivo Technologies, Limassol, Cyprus.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var btn = document.getElementById('copy-email');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); };
+    var fallback = function () {
+      var r = document.createRange(); r.selectNodeContents(document.querySelector('.support code'));
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Selected';
+    };
+    try { navigator.clipboard.writeText('support@typefit.app').then(done, fallback); } catch (e) { fallback(); }
+  });
+})();
+</script>
 </body>
 </html>
